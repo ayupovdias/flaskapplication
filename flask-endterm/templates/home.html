@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+    <h1>All Products</h1>
+    <div class="products">
+        {% for product in products %}
+            <div class="product">
+                {% if product.image %}
+                    <img src="{{ url_for('static', filename='uploads/' + product.image) }}" alt="{{ product.name }}">
+                {% endif %}
+                <h3>{{ product.name }}</h3>
+                <p>Price: ${{ "%.2f"|format(product.price) }}</p>
+                <p>{{ product.description }}</p>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}
