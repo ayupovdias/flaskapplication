@@ -13,7 +13,7 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = 'key'
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///products.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-app.config['MAX_CONTENT_LENGTH'] = 2 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024
 
 
 db = SQLAlchemy(app)
@@ -120,6 +120,7 @@ def login():
         user = User.query.filter_by(email=form.email.data).first()
         if user and check_password_hash(user.password, form.password.data):
             session['user_id'] = user.id
+            flash("You logged in successfully!", category="success")
             return redirect(url_for('dashboard'))
         flash('Invalid email or password', category="danger")
     return render_template('login.html', form=form)
@@ -135,6 +136,7 @@ def dashboard():
 @app.route('/logout')
 def logout():
     session.pop('user_id', None)
+    flash("You logged out", category="success")
     return redirect(url_for('home'))
 
 
@@ -161,6 +163,7 @@ def add_product():
         )
         db.session.add(product)
         db.session.commit()
+        flash("You added a new product successfully!", category="success")
         return redirect(url_for('dashboard'))
 
     return render_template('product_form.html', form=form)
@@ -183,6 +186,7 @@ def edit_product(id):
             product.image = filename
 
         db.session.commit()
+        flash("You edited the product successfully!", category="success")
         return redirect(url_for('dashboard'))
 
     return render_template('product_form.html', form=form)
@@ -196,6 +200,7 @@ def delete_product(id):
 
     db.session.delete(product)
     db.session.commit()
+    flash("You deleted the product successfully!", category="success")
     return redirect(url_for('dashboard'))
 
 
