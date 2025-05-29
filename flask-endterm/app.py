@@ -77,8 +77,10 @@ class LoginForm(FlaskForm):
 class ProductForm(FlaskForm):
     name = StringField('Name', validators=[DataRequired()])
     price = DecimalField('Price', places=2, validators=[DataRequired()])
-    description = TextAreaField('Description')
-    image = FileField('Product Image')
+    description = TextAreaField('Description', validators=[DataRequired()])
+    image = FileField('Product Image', validators=[DataRequired()])
+
+
 
 
 def allowed_file(filename):
@@ -148,23 +150,26 @@ def add_product():
     form = ProductForm()
     if form.validate_on_submit():
         file = form.image.data
-        filename = None
+
 
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-        product = Product(
-            name=form.name.data,
-            price=form.price.data,
-            description=form.description.data,
-            image=filename,
-            user_id=session['user_id']
-        )
-        db.session.add(product)
-        db.session.commit()
-        flash("You added a new product successfully!", category="success")
-        return redirect(url_for('dashboard'))
+            product = Product(
+                name=form.name.data,
+                price=form.price.data,
+                description=form.description.data,
+                image=filename,
+                user_id=session['user_id']
+            )
+            db.session.add(product)
+            db.session.commit()
+            flash("You added a new product successfully!", category="success")
+            return redirect(url_for('dashboard'))
+        else:
+            flash("The file must contain .jpg, .png or .jpeg", category="danger")
+
 
     return render_template('product_form.html', form=form)
 
@@ -178,18 +183,21 @@ def edit_product(id):
     form = ProductForm(obj=product)
     if form.validate_on_submit():
         form.populate_obj(product)
-
         file = form.image.data
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
             product.image = filename
 
-        db.session.commit()
-        flash("You edited the product successfully!", category="success")
-        return redirect(url_for('dashboard'))
+            db.session.commit()
+            flash("You edited the product successfully!", category="success")
+            return redirect(url_for('dashboard'))
+        else:
+            flash("The file must contain .jpg, .png or .jpeg", category="danger")
+
 
     return render_template('product_form.html', form=form)
+
 
 
 @app.route('/delete_product/<int:id>')
