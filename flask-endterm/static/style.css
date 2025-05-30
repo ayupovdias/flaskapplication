@@ -96,16 +96,39 @@ input{
 .success{
     color:green;
     background-color: #99FF99;
-    border:1px solid green;
+    border:2px solid green;
+    margin-bottom:5px;
 }
 .danger{
     color: red;
     background-color: #FFBBBB;
     border:2px solid red;
+    margin-bottom:5px;
+
+}
+.yellow{
+    color: #666600;
+    background-color: #FFFF0F;
+    border:2px solid #666600;
+    margin-bottom:5px;
 }
 textarea{
     width:258px;
     height:100px;
     border:1px solid black;
     border-radius:4px;
+}
+.edit{
+    color:white;
+    background-color:orange;
+    padding:3px;
+    border-radius:4px;
+    text-decoration:none;
+}
+.delete{
+    color:white;
+    background-color:red;
+    padding:3px;
+    border-radius:4px;
+    text-decoration:none;
 }

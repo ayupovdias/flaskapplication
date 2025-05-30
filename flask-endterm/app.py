@@ -1,4 +1,3 @@
-
 import os
 from flask import Flask, render_template, redirect, url_for, request, flash, session, get_flashed_messages
 from flask_sqlalchemy import SQLAlchemy
@@ -7,7 +6,7 @@ from werkzeug.utils import secure_filename
 from flask_wtf import FlaskForm
 from wtforms import StringField, PasswordField, TextAreaField, DecimalField, FileField
 from wtforms.validators import DataRequired, Length, Email, ValidationError
-
+from ai_utils import analyze_description
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'key'
@@ -15,13 +14,10 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///products.db'
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 app.config['MAX_CONTENT_LENGTH'] = 3 * 1024 * 1024
 
-
 db = SQLAlchemy(app)
-
 
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
-
 
 
 class User(db.Model):
@@ -30,6 +26,7 @@ class User(db.Model):
     email = db.Column(db.String(100), unique=True)
     password = db.Column(db.String(200))
     products = db.relationship('Product', backref='user', lazy=True)
+
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -69,6 +66,7 @@ class RegistrationForm(FlaskForm):
         if self.password.data != confirm_password.data:
             raise ValidationError('Passwords must match')
 
+
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
@@ -81,18 +79,22 @@ class ProductForm(FlaskForm):
     image = FileField('Product Image', validators=[DataRequired()])
 
 
-
-
 def allowed_file(filename):
     return '.' in filename and \
         filename.rsplit('.', 1)[1] in {'png', 'jpg', 'jpeg'}
 
-
+def cate(sentiment):
+    if sentiment=="POSITIVE":
+        return "success"
+    elif sentiment=="NEGATIVE":
+        return "danger"
+    else:
+        return "yellow"
 
 @app.route('/')
 def home():
     if "user_id" not in session:
-       return render_template("main.html")
+        return render_template("main.html")
     products = Product.query.all()
     return render_template('home.html', products=products)
 
@@ -114,7 +116,6 @@ def register():
     return render_template('register.html', form=form)
 
 
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     form = LoginForm()
@@ -126,6 +127,7 @@ def login():
             return redirect(url_for('dashboard'))
         flash('Invalid email or password', category="danger")
     return render_template('login.html', form=form)
+
 
 @app.route('/dashboard')
 def dashboard():
@@ -151,10 +153,10 @@ def add_product():
     if form.validate_on_submit():
         file = form.image.data
 
-
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
             file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
 
             product = Product(
                 name=form.name.data,
@@ -165,11 +167,15 @@ def add_product():
             )
             db.session.add(product)
             db.session.commit()
+            file.close()
             flash("You added a new product successfully!", category="success")
+
+            sentiment, score = analyze_description(form.description.data)
+            flash(f"AI Sentiment Analysis: {sentiment} ({score:.2f})", category=cate(sentiment))
+
             return redirect(url_for('dashboard'))
         else:
             flash("The file must contain .jpg, .png or .jpeg", category="danger")
-
 
     return render_template('product_form.html', form=form)
 
@@ -191,25 +197,34 @@ def edit_product(id):
 
             db.session.commit()
             flash("You edited the product successfully!", category="success")
+            file.close()
+
+            sentiment, score = analyze_description(form.description.data)
+            flash(f"AI Sentiment Analysis: {sentiment} ({score:.2f})", category=cate(sentiment))
             return redirect(url_for('dashboard'))
         else:
             flash("The file must contain .jpg, .png or .jpeg", category="danger")
 
-
     return render_template('product_form.html', form=form)
-
 
 
 @app.route('/delete_product/<int:id>')
 def delete_product(id):
-    product = Product.query.get_or_404(id)
-    if product.user_id != session.get('user_id'):
-        return redirect(url_for('home'))
+    try:
+        product = Product.query.get_or_404(id)
+        if product.user_id != session.get('user_id'):
+            return redirect(url_for('home'))
 
-    db.session.delete(product)
-    db.session.commit()
-    flash("You deleted the product successfully!", category="success")
+        db.session.delete(product)
+        db.session.commit()
+        os.remove(os.path.join(app.config['UPLOAD_FOLDER'], product.image))
+        flash("You deleted the product successfully!", category="success")
+
+
+    except OSError:
+        pass
     return redirect(url_for('dashboard'))
+
 
 
 if __name__ == '__main__':
