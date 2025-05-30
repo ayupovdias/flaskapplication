@@ -37,7 +37,8 @@ Security:
 
 -Passwords are never in plain text
 
-AI integration
+AI integration:
+
 This app use hugging face transformer model (distilbert-base-uncased-finetuned-sst-2-english)to determine the sentiment score of the product descriptions when new or edit a product. 
 The model estimates if the description is positive or negative helping users to write better
 
